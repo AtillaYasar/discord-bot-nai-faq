@@ -146,7 +146,7 @@ async def on_message(message):
         new_brain()
         await botchannel.send(file=discord.File("brain.json"), content=f'my new brain after {content}')
 
-bot_token = 'MTAzMzg4MDMxMjgyMTg0NjA2Ng.GUMjgc.Fjh2WFP12wb68VtaiT8uvhfEK6FxbcStu203js'
+bot_token = 'secret'
 
 client.run(bot_token)
 
