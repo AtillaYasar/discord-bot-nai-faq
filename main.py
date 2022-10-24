@@ -7,7 +7,7 @@
     # -add_command
     # -delete_command
 
-import discord
+import discord, os, json
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -47,7 +47,7 @@ def delete_command(a, message):
         to_delete = words[1]
         #return f'{existing}\n{to_delete}'
         del commands[to_delete]
-        return f'success\nremoved {to_delete} from commands'
+        return f'success\ndeleted {to_delete} from commands'
 
 info = '''
 - commands: will show the available commands
@@ -77,13 +77,37 @@ list_of_commands = [
 for tup in list_of_commands:
     commands[tup[0]] = tup[1]
 
+def new_brain():
+    path = 'brain.json'
+    to_exclude = ('-commands', '-add', '-delete')
+    content = {k:v for k,v in commands.items() if k not in to_exclude}
+    with open(path, 'w', encoding="utf-8") as f:
+        json.dump(content, f, indent=2)
+        f.close()
+
 botchannel = 0
 @client.event
 async def on_ready():
+    print(f'We have logged in as {client.user}')
+    
     global botchannel
     botchannel_id = 1034163297529901148
     botchannel = client.get_channel(botchannel_id)
-    print(f'We have logged in as {client.user}')
+    message = await botchannel.fetch_message(botchannel.last_message_id)
+    #print(dir(message))
+    
+    att = message.attachments
+    if len(att) > 1:
+        print('more than 1 attachment!')
+    att = att[0]
+    with open(att.filename, 'r', encoding="utf-8") as f:
+        contents = json.load(f)
+        f.close()
+
+    for tup in contents.items():
+        commands[tup[0]] = tup[1]
+    
+    #print(dir(last))
 
 @client.event
 async def on_message(message):
@@ -92,18 +116,20 @@ async def on_message(message):
     author = message.author
     content = message.content
     message_channel = message.channel
-    
-    log = [False, f'{"-"*5}\nmessage channel:{message_channel}\nauthor:{author}\nmessage:{content}']
-    respond = False
-    # log is sent to bot channel when a correct command is used
-    # response is sent to the original message's channel when a message has - in front of it.
-    
+
     if author == client.user:
         return
     
+    log = [False, f'{"-"*5}\nmessage channel:{message_channel}\nauthor:{author}\nmessage:{content}']
+    respond = False
+    # log is sent to bot channel when
+    # response is sent to the original message's channel when a message has - in front of it.
+    
+    
     if content.split(' ')[0] in commands:
         behavior = commands[content.split(' ')[0]]
-        log[0] = True
+        if content.partition(' ')[0] in ('-add', '-delete'):
+            log[0] = True
         respond = True
         if type(behavior) == str:
             response = f'{commands[content]}' # will only return a response.
@@ -117,9 +143,10 @@ async def on_message(message):
     if respond == True:
         await message.channel.send(response)
     if log[0] == True:
-        await botchannel.send(log[1])
+        new_brain()
+        await botchannel.send(file=discord.File("brain.json"), content=f'my new brain after {content}')
 
-bot_token = ''
+bot_token = 'MTAzMzg4MDMxMjgyMTg0NjA2Ng.GUMjgc.Fjh2WFP12wb68VtaiT8uvhfEK6FxbcStu203js'
 
 client.run(bot_token)
 
