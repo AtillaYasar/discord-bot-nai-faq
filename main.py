@@ -76,34 +76,64 @@ list_of_commands = [
 
 for tup in list_of_commands:
     commands[tup[0]] = tup[1]
-    
+
+botchannel = 0
 @client.event
 async def on_ready():
+    global botchannel
+    botchannel_id = 1034163297529901148
+    botchannel = client.get_channel(botchannel_id)
     print(f'We have logged in as {client.user}')
 
 @client.event
 async def on_message(message):
+    # this function first checks if a response is required, then checks how to respond, according to the 'commands' dictionary, then at the end sends a response
+    # also logs commands in the bot-only channel.
     author = message.author
     content = message.content
+    message_channel = message.channel
+    
+    log = [False, f'{"-"*5}\nmessage channel:{message_channel}\nauthor:{author}\nmessage:{content}']
+    respond = False
+    # log is sent to bot channel when a correct command is used
+    # response is sent to the original message's channel when a message has - in front of it.
     
     if author == client.user:
         return
     
     if content.split(' ')[0] in commands:
         behavior = commands[content.split(' ')[0]]
-        #print(behavior)
+        log[0] = True
+        respond = True
         if type(behavior) == str:
-            response = f'{commands[content]}'
+            response = f'{commands[content]}' # will only return a response.
         else:
-            response = behavior(author, content)
-        await message.channel.send(f'{response}')
+            response = behavior(author, content) # will call a function, and also return a response.
     else:
-        pass
-        #await message.channel.send(f'"{content}" is not a command. list of commands:\n{get_commands(0, 0)}')
+        if content[0] == '-':
+            respond = True
+            response = f'"{content}" is not a command. list of commands:\n{get_commands(0, 0)}'
 
-bot_token = 'this is a secret token'
+    if respond == True:
+        await message.channel.send(response)
+    if log[0] == True:
+        await botchannel.send(log[1])
+
+bot_token = ''
 
 client.run(bot_token)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
