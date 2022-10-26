@@ -1,3 +1,7 @@
+import neverSleep
+neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
+#All your code: \/
+
 ## what is this?
 # a very basic discord bot code. uses replit to host it, and UptimeRobot to wake up replit whenever it falls asleep.
 # Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
@@ -7,7 +11,8 @@
     # -add_command
     # -delete_command
 
-import discord, os, json
+import discord, os, json, time
+from discord.ext import tasks
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -85,17 +90,31 @@ def new_brain():
         json.dump(content, f, indent=2)
         f.close()
 
+frequency = 300
+awake_time = -frequency
+@tasks.loop(seconds=frequency)
+async def staying_awake():
+    global awake_time
+    awake_time += frequency
+    channel = client.get_channel(1034163297529901148)
+    await channel.send(file=discord.File("brain.json"), content=f'$Log$\nStaying awake every {frequency} seconds, awake_time: {awake_time} seconds\nexact time: {str(time.time()).partition(".")[0]}')
+
 botchannel = 0
 @client.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
-    
+    print(f'bot logged in as {client.user}')
+
+    # get the last message in the bot channel
     global botchannel
     botchannel_id = 1034163297529901148
     botchannel = client.get_channel(botchannel_id)
     message = await botchannel.fetch_message(botchannel.last_message_id)
-    #print(dir(message))
+
+    await botchannel.send(file=discord.File("brain.json"), content=f'I\'m back.')
     
+    staying_awake.start()
+
+    # get the json in that message and load its contents
     att = message.attachments
     if len(att) > 1:
         print('more than 1 attachment!')
@@ -104,10 +123,9 @@ async def on_ready():
         contents = json.load(f)
         f.close()
 
+    # configure commands that are in the json
     for tup in contents.items():
         commands[tup[0]] = tup[1]
-    
-    #print(dir(last))
 
 @client.event
 async def on_message(message):
@@ -136,9 +154,10 @@ async def on_message(message):
         else:
             response = behavior(author, content) # will call a function, and also return a response.
     else:
-        if content[0] == '-':
-            respond = True
-            response = f'"{content}" is not a command. list of commands:\n{get_commands(0, 0)}'
+        if len(content) != 0:
+            if content[0] == '-':
+                respond = True
+                response = f'"{content}" is not a command. list of commands:\n{get_commands(0, 0)}'
 
     if respond == True:
         await message.channel.send(response)
@@ -146,12 +165,13 @@ async def on_message(message):
         new_brain()
         await botchannel.send(file=discord.File("brain.json"), content=f'my new brain after {content}')
 
-bot_token = 'secret'
+
+
+
+
+bot_token = 'this is a secret'
 
 client.run(bot_token)
-
-
-
 
 
 
