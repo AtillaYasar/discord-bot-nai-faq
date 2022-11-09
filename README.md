@@ -1,3 +1,1 @@
-# discord-bot-nai-faq
-
-join us in developing this bot https://discord.gg/czg5UuTktv
+playing around with a discord bot, maybe eventually it will answer questions about NovelAI
