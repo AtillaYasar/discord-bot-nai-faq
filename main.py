@@ -1,6 +1,18 @@
 # code for discord bot. uses replit to host it, and UptimeRobot to wake up replit whenever it falls asleep.
 # Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
 
+'''
+Purpose:
+    - to build up a set of question/answer pairs
+    - users can add to the dataset from discord, and search the existing dataset
+    
+commands:
+    - -addqa
+        + lets you add a question/answer pair
+    - -searchqa
+        + lets you search the question/answer pairs, and will present them nicely
+'''
+
 import neverSleep
 neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
 
