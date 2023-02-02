@@ -1,195 +1,228 @@
-import neverSleep
-neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
-#All your code: \/
-
-## what is this?
-# a very basic discord bot code. uses replit to host it, and UptimeRobot to wake up replit whenever it falls asleep.
+# code for discord bot. uses replit to host it, and UptimeRobot to wake up replit whenever it falls asleep.
 # Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
 
-## there are 3 special functions that can be operated via Discord:
-    # -get_commands
-    # -add_command
-    # -delete_command
+import neverSleep
+neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
 
-import discord, os, json, time
-from discord.ext import tasks
+import discord, json, ast
+from discord.ext import commands
+import random
 
-intents = discord.Intents.default()
-intents.message_content = True
-
-client = discord.Client(intents=intents)
-
-commands = {}
-def get_commands(a, b):
-    return ', '.join(commands.keys())
-
-def add_command(author,message):
-    explanation = 'after add, write the command, starting with a -, and then the response that you want the bot to make, for example:-add -kek huehueuhueh lol teehee im a drunk bot.'
-    
-    words = message.split(' ')
-    if len(words) < 3:
-        return f'failed\nbecase you need at least 3 words in total: -add, -command, response\nexplanation:{explanation}'
-    elif words[1] in ['-add', '-commands', '-delete', '-info']:
-        return f'failed\nbecause you cannot change -add or -commands or -delete or -info\nexplanation:{explanation}'
-    elif words[1][0] != '-':
-        return f'failed\nbecause second word did not start with a -\nexplanation:{explanation}'
-    else:
-        command, response = words[1], ' '.join(words[2:])
-        commands[command] = response
-        return f'success\n"{command}" will now cause the response: {response}'
-
-def delete_command(a, message):
-    existing = get_commands(0,0).split(', ')
-    explanation = 'after -delete, write the command you want to delete, for example:-delete -kek'
-    words = message.split(' ')
-    if len(words) != 2:
-        return f'failed\nbecase you need at exactly 2 words in total: -delete, -command\nexplanation: {explanation}'
-    elif words[1] in ['-add', '-commands', '-delete', '-info']:
-        return f'failed\nbecause you cannot delete -add or -commands or -delete or -info\nexplanation: {explanation}'
-    elif words[1] not in existing:
-        return f'failed\nbecause {words[1]} is not an existing command\n existing commands:{existing}\nexplanation: {explanation}'
-    else:
-        to_delete = words[1]
-        #return f'{existing}\n{to_delete}'
-        del commands[to_delete]
-        return f'success\ndeleted {to_delete} from commands'
-
-info = '''
-- commands: will show the available commands
-- add: lets you add a command. example: "-add -keepitreal for sure dawg" will make it respond to -keepitreal with for sure dawg. will overwrite the existing command
-- delete: lets you delete a command. example: "-delete -keepitreal" to delete the -keepitreal command.
-- info: that's me! pog.
-
-- these 4 commands have more functionalities than just simple text responses. via Discord, i don't know how to let you program anything other than the text responses
-- they will tell you what mistake you made
-- you can't delete or overwrite these 4.
-
-hosting:
-this bot's code is in replit, because it can host the bot on a server. and i use UptimeRobot to tell repit not to fall asleep, every 30 minutes. i have not tested whether it wakes it up correctly, because i havent given replit enough time to fall asleep (1 hour)
-'''[1:-1]
-list_of_commands = [
-    ('-info', info),
-    ('-hello','hello'),
-    ('-context','context is the amount of tokens the ai can remember'),
-    ('-tokens','a token is a word or part of a word, depending on the word.'),
-    ('-shitgibbon','congratulations for using the best insult ever'),
-    ('-rtfm','Did you try reading the manual literally at the top of the page?'),
-    ('-leader','@baka , AKA "Atilla", is the true singular supreme leader of this nefarious undertaking. All responsibility and culpably rests solely on his shoulders. The rest of us are mere pawns, grunts, and underlings to his glorious vision. All Hail Atilla the One!'),
-    ('-commands',lambda author,message:get_commands(author,message)),
-    ('-add',lambda author,message:add_command(author,message)),
-    ('-delete',lambda author,message:delete_command(author,message))]
-
-for tup in list_of_commands:
-    commands[tup[0]] = tup[1]
-
-def new_brain():
-    path = 'brain.json'
-    to_exclude = ('-commands', '-add', '-delete')
-    content = {k:v for k,v in commands.items() if k not in to_exclude}
-    with open(path, 'w', encoding="utf-8") as f:
-        json.dump(content, f, indent=2)
+def make_json(dic, filename):
+    with open(filename, 'w', encoding="utf-8") as f:
+        json.dump(dic, f, indent=2)
         f.close()
 
-frequency = 300
-awake_time = -frequency
-@tasks.loop(seconds=frequency)
-async def staying_awake():
-    global awake_time
-    awake_time += frequency
-    channel = client.get_channel(1034163297529901148)
-    await channel.send(file=discord.File("brain.json"), content=f'$Log$\nStaying awake every {frequency} seconds, awake_time: {awake_time} seconds\nexact time: {str(time.time()).partition(".")[0]}')
-
-botchannel = 0
-@client.event
-async def on_ready():
-    print(f'bot logged in as {client.user}')
-
-    # get the last message in the bot channel
-    global botchannel
-    botchannel_id = 1034163297529901148
-    botchannel = client.get_channel(botchannel_id)
-    message = await botchannel.fetch_message(botchannel.last_message_id)
-
-    await botchannel.send(file=discord.File("brain.json"), content=f'I\'m back.')
-    
-    staying_awake.start()
-
-    # get the json in that message and load its contents
-    att = message.attachments
-    if len(att) > 1:
-        print('more than 1 attachment!')
-    att = att[0]
-    with open(att.filename, 'r', encoding="utf-8") as f:
+def open_json(filename):
+    with open(filename, 'r', encoding="utf-8") as f:
         contents = json.load(f)
         f.close()
+    return contents
 
-    # configure commands that are in the json
-    for tup in contents.items():
-        commands[tup[0]] = tup[1]
-
-@client.event
-async def on_message(message):
-    # this function first checks if a response is required, then checks how to respond, according to the 'commands' dictionary, then at the end sends a response
-    # also logs commands in the bot-only channel.
-    author = message.author
-    content = message.content
-    message_channel = message.channel
-
-    if author == client.user:
-        return
-    
-    log = [False, f'{"-"*5}\nmessage channel:{message_channel}\nauthor:{author}\nmessage:{content}']
-    respond = False
-    # log is sent to bot channel when
-    # response is sent to the original message's channel when a message has - in front of it.
-    
-    
-    if content.split(' ')[0] in commands:
-        behavior = commands[content.split(' ')[0]]
-        if content.partition(' ')[0] in ('-add', '-delete'):
-            log[0] = True
-        respond = True
-        if type(behavior) == str:
-            response = f'{commands[content]}' # will only return a response.
+def clean_edges(string):
+    dirty = [" ","\t","\n"]
+    while True:
+        if len(string) == 0:
+            return string
+        if string[0] in dirty:
+            string = string[1:]
         else:
-            response = behavior(author, content) # will call a function, and also return a response.
-    else:
-        if len(content) != 0:
-            if content[0] == '-':
-                respond = True
-                response = f'"{content}" is not a command. list of commands:\n{get_commands(0, 0)}'
-
-    if respond == True:
-        await message.channel.send(response)
-    if log[0] == True:
-        new_brain()
-        await botchannel.send(file=discord.File("brain.json"), content=f'my new brain after {content}')
-
-
-
-
+            break
+    while True:
+        if len(string) == 0:
+            return string
+        if string[-1] in dirty:
+            string = string[:-1]
+        else:
+            break
+    return string
 
 bot_token = 'this is a secret'
 
-client.run(bot_token)
+description = '''An example bot to showcase the discord.ext.commands extension
+module.
+There are a number of utility commands being showcased here.'''
+
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='-', description=description, intents=intents)
+
+# first normal functions, then stuff from the discord py library
+
+# parsing an input from the addqa command
+def addqa_parser(input):
+    input = clean_edges(input)
+    lines = input.split('\n')
+    q = clean_edges(lines[0])
+    a = clean_edges('\n'.join(lines[1:]))
+    
+    if q == '' or a == '':
+        valid = False
+        result = {
+            'question':'invalid input',
+            'answer':'invalid input'
+            }
+    else:
+        valid = True
+        result = {
+            'question':q,
+            'answer':a
+        }
+    return valid, result
+
+# probably by writing to the for-bot-only channel. not written yet.
+def backup_qa():
+    print('backup_qa is not getting used lol')
+
+# updating the q and a.
+def update_qa(q,a):
+    qa = open_json('qa.json')
+    d = {'question':q, 'answer':a}
+    if d in qa:
+        print('update_qa log: skipping update because d in qa')
+    else:
+        qa.append(d)
+        make_json(qa, 'qa.json')
+    backup_qa()
+
+# case insensitive search, looks through questions and answers
+def apply_searchterm(term):
+    term = term.lower()
+    findings = []
+    qa = open_json('qa.json')
+    for d in qa:
+        q = d['question'].lower()
+        a = d['answer'].lower()
+        if term in q or term in a:
+            # hotfix of duplicate questions and answers
+            if d in findings:
+                continue
+                
+            findings.append(d)
+    return findings
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
+
+    # get the last message in the bot channel
+    botchannel_id = 1034163297529901148
+    botchannel = bot.get_channel(botchannel_id)
+    message = await botchannel.fetch_message(botchannel.last_message_id)
+    
+    # get the json in that message and store its contents as qa.json
+    atts = message.attachments
+    if len(atts) > 1:
+        print('ERROR: more than 1 attachment!')
+    att = atts[0]
+    as_bytes = await att.read()
+    as_list = ast.literal_eval(as_bytes.decode('utf-8'))
+    make_json(as_list, 'qa.json')
+    print('stored previous qa.json')
+    print('---')
 
 
+@bot.command()
+async def addqa(ctx, *, input):
+    valid, result = addqa_parser(input)
+    input_explanation = '''
+you just need an empty line between the question and the answer. so:
+```
+-addqa is this a question?
 
+yes.
+```
+or
+```
+-addqa
+is this a question?
 
+yes.
+```
+    '''[1:-1]
+    reason = None
+    
+    if valid == True:
+        q = result['question']
+        a = result['answer']
+        update_qa(q, a)
+        
+        response = 'question added successfully'
+    else:
+        response = f'failed to add question\nreason:{reason}\ninput explanation:{input_explanation}'
+        
+    await ctx.send(response)
 
+    # do backup
+    botchannel_id = 1034163297529901148
+    botchannel = bot.get_channel(botchannel_id)
+    await botchannel.send(
+        file=discord.File("qa.json"),
+        content='backing up qa.json'
+    )
+    print('backup was done inside\n\tasync def addqa(ctx, *, input)\nbecause i dont know how to do it outside of this function.')
 
+@bot.command()
+async def searchqa(ctx, *, input):
+    reason = None
+    input_explanation = None
 
+    # check if input is correct
+    if len(input.split('\n')) == 1:
+        valid = True
+    else:
+        valid = False
+        reason = 'input must be exactly 1 line'
 
+    # formulate response
+    if valid == True:
+        # search qa and present findings
+        findings = apply_searchterm(input)
+        if findings == []:
+            report = 'nothing found'
+            response = f'search successful\n{report}'
+        else:
+            # doing the sections thing to deal with messages having to be shorter than 2000 chars
+            sections = []
 
+            # add beginning
+            next_section = []
+            next_section.append('search successful')
+            next_section.append('-'*5 + ' start')
+            next_section.append(f'number of results:{len(findings)}')
 
+            # start new
+            sections.append('\n'.join(next_section))
+            next_section = []
 
+            # add each qa as a seperate section
+            qa = []
+            for d in findings:
+                lines = []
+                for string in (
+                    '**' + d['question'] + '**',
+                    '```' + d['answer'] + '```'
+                ):
+                    lines.append(string)
+                sections.append('\n'.join(lines))
+            
+            sections.append('-'*5 + ' end')
+            full_response = '\n'.join(sections)
+            if len(full_response) < 2000:
+                response = full_response
+            else:
+                response = sections
+    else:
+        # say why search is incorrect
+        response = f'search command is incorrect. reason:{reason}, input explanation:{input_explanation}'
 
+    if type(response) is list:
+        for message in response:
+            await ctx.send(message)
+    else:
+        await ctx.send(response)
 
-
-
-
-
-
-
-
-
+bot.run(bot_token)
