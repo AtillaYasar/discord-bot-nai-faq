@@ -1,18 +1,3 @@
-# code for discord bot. uses replit to host it, and UptimeRobot to wake up replit whenever it falls asleep.
-# Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
-
-'''
-Purpose:
-    - to build up a set of question/answer pairs
-    - users can add to the dataset from discord, and search the existing dataset
-    
-commands:
-    - -addqa
-        + lets you add a question/answer pair
-    - -searchqa
-        + lets you search the question/answer pairs, and will present them nicely
-'''
-
 import neverSleep
 neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
 
@@ -49,11 +34,9 @@ def clean_edges(string):
             break
     return string
 
-bot_token = 'this is a secret'
+bot_token = 'hey this is secret yo'
 
-description = '''An example bot to showcase the discord.ext.commands extension
-module.
-There are a number of utility commands being showcased here.'''
+description = '''a q&a bot for answering questions about NovelAI  (the gpt powered storyteller pog)'''
 
 intents = discord.Intents.default()
 intents.members = True
@@ -86,10 +69,10 @@ def addqa_parser(input):
 
 # probably by writing to the for-bot-only channel. not written yet.
 def backup_qa():
-    print('backup_qa is not getting used lol')
+    print('backup_qa is not getting used lol. (because you seem to need an async function to send stuff)')
 
-# updating the q and a.
-def update_qa(q,a):
+# add a question/answer pair
+def _addqa(q,a):
     qa = open_json('qa.json')
     d = {'question':q, 'answer':a}
     if d in qa:
@@ -98,6 +81,21 @@ def update_qa(q,a):
         qa.append(d)
         make_json(qa, 'qa.json')
     backup_qa()
+
+# deletes a question/answer pair. requires exact match to question
+def _deleteqa(q):
+    qa = open_json('qa.json')
+    pair = next( (item for item in qa if item['question'] == q), None)
+    
+    # delete question if exact match, then send a response
+    if pair == None:
+        response = f'**failure**\nexact match to question "{q}" was not found'
+    else:
+        qa = [item for item in qa if item['question'] != q]
+        make_json(qa, 'qa.json')
+        backup_qa()
+        response = f'**success**\nquestion "{q}" was deleted'
+    return response
 
 # case insensitive search, looks through questions and answers
 def apply_searchterm(term):
@@ -136,6 +134,20 @@ async def on_ready():
     print('stored previous qa.json')
     print('---')
 
+# deletes a question/answer pair. requires exact match to question
+@bot.command()
+async def deleteqa(ctx, *, input):
+    response = _deleteqa(input)
+    await ctx.send(response)
+    
+    # do backup
+    botchannel_id = 1034163297529901148
+    botchannel = bot.get_channel(botchannel_id)
+    await botchannel.send(
+        file=discord.File("qa.json"),
+        content='backing up qa.json'
+    )
+    print('backup was done inside\n\tasync def addqa(ctx, *, input)\nbecause i dont know how to do it outside of this function.')
 
 @bot.command()
 async def addqa(ctx, *, input):
@@ -160,7 +172,7 @@ yes.
     if valid == True:
         q = result['question']
         a = result['answer']
-        update_qa(q, a)
+        _addqa(q, a)
         
         response = 'question added successfully'
     else:
@@ -203,8 +215,8 @@ async def searchqa(ctx, *, input):
             # add beginning
             next_section = []
             next_section.append('search successful')
-            next_section.append('-'*5 + ' start')
             next_section.append(f'number of results:{len(findings)}')
+            next_section.append('-'*5 + ' start')
 
             # start new
             sections.append('\n'.join(next_section))
