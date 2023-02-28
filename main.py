@@ -1,4 +1,4 @@
-# Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
+# Thank you mister Fizal Sarif for teaching me how to do the uptime robot stuff for getting a free permanent server for the bot: https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
 # uses this discord as the embeddings api https://github.com/another-ai/embedbase
 
 import neverSleep
@@ -91,7 +91,7 @@ def clean_edges(string):
             break
     return string
 
-bot_token = 'MTAzMzg4MDMxMjgyMTg0NjA2Ng.Ga3VLY.eMzXpuj4zlUbaGFObp5RuKV2WKgNisRP_se_Jk'
+bot_token = 'this is a secret'
 
 description = '''a q&a bot for answering questions about NovelAI  (the gpt powered storyteller pog)'''
 
