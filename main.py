@@ -1,9 +1,66 @@
+# Thank you mister Fizal Sarif for teaching me how to do this. https://dev.to/fizal619/so-you-want-to-make-a-discord-bot-4f0n
+# uses this discord as the embeddings api https://github.com/another-ai/embedbase
+
 import neverSleep
 neverSleep.awake(r'https://replit.com/@AtillaYasar/NovelAI-faq#main.py', False)
 
-import discord, json, ast
+import discord, json, ast, requests, openai, io, random
 from discord.ext import commands
-import random
+
+authorizationToken = 'this is secret'
+headers = {'Content-Type': 'application/json',
+           'authorization': f'Bearer {authorizationToken}'
+           }
+
+openai.api_key = 'this is secret'
+
+def search_iterable(iterable, checker):
+    item = next((item for item in iterable if checker(item)), None)
+    return item
+
+def _check_moderation(prompt):
+    # Set the text you want to check in the 'input' field
+    data = {'input': prompt}
+    
+    # Set the Content-Type and Authorization headers
+    headers = {
+      'Content-Type': 'application/json',
+      'Authorization': f'Bearer {openai.api_key}'
+    }
+    
+    # Make the request to the moderation endpoint
+    response = requests.post('https://api.openai.com/v1/moderations', headers=headers, json=data).json()
+    
+    # Print the response
+    categories = response['results'][0]['categories']
+    scores = response['results'][0]['category_scores']
+    flagged = response['results'][0]['flagged']        
+
+    lines = []
+    lines.append(f'flagged:{flagged}')
+    for k,v in categories.items():
+        score = float(scores[k])
+        lines.append(f'{k}:{v}, {round(score, 3)}')
+
+    if flagged:
+        return ('ABORT', '\n'.join(lines))
+    else:
+        return ('all good', '\n'.join(lines))
+
+def _generate_openai(prompt):
+    settings = {
+      "engine": "code-davinci-002",
+      "prompt": prompt,
+      "temperature": 0.8,
+      "max_tokens": 75,
+      "n": 1,
+      "best_of":5,
+      "stop": None,
+    }
+
+    completions = openai.Completion.create(**settings)
+    response = completions['choices'][0]['text']
+    return response
 
 def make_json(dic, filename):
     with open(filename, 'w', encoding="utf-8") as f:
@@ -34,7 +91,7 @@ def clean_edges(string):
             break
     return string
 
-bot_token = 'hey this is secret yo'
+bot_token = 'MTAzMzg4MDMxMjgyMTg0NjA2Ng.Ga3VLY.eMzXpuj4zlUbaGFObp5RuKV2WKgNisRP_se_Jk'
 
 description = '''a q&a bot for answering questions about NovelAI  (the gpt powered storyteller pog)'''
 
@@ -66,6 +123,96 @@ def addqa_parser(input):
             'answer':a
         }
     return valid, result
+
+def _embedding_search(search_term):
+    api_key = 'this is secret'
+
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'query':search_term
+    }
+    url = "https://embedbase-hosted-usx5gpslaq-uc.a.run.app/v1/dev/search"
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    matches = []
+    
+    lines = []
+    lines.append('='*10)
+    lines.append('Compared embeddings.')
+    lines.append('Search term:')
+    lines.append('=====')
+    lines.append(search_term)
+    lines.append('=====')
+    lines.append('Here are the top results')
+    lines.append('')
+    for n, item in enumerate(response.json()['similarities']):
+        string = item['data']
+        score = round(item['score'], 3)
+
+        matches.append(string)
+        lines.append(f'match nr{n}, score:{score}')
+        lines.append(string)
+        lines.append('')
+
+    # add corresponding pairs
+    lines.append('='*10)
+    lines.append('q-a pairs corresponding to matches:')
+    qa_pairs = open_json('qa.json')
+    for d in qa_pairs:
+        q = d['question']
+        a = d['answer']
+
+        addthis = False
+        if q in matches:
+            idx = matches.index(q)
+            addthis = True
+        elif a in matches:
+            idx = matches.index(a)
+            addthis = True
+            
+        if addthis:
+            lines.append(f'match nr:{idx}')
+            lines.append(f'Question:')
+            lines.append(q)
+            lines.append('=')
+            lines.append(f'Answer:')
+            lines.append(a)
+            lines.append('=')
+            
+
+    lines.append('='*10)
+
+    return '\n'.join(lines)
+
+def _embedding_add(string):
+    api_key = 'this is secret'
+
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'documents': [
+            {
+                'data':string
+            }
+        ]
+    }
+    url = "https://embedbase-hosted-usx5gpslaq-uc.a.run.app/v1/dev"
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    return str(response.json())
+
+# adding existing questions to embeddings database
+for d in open_json('qa.json'):
+    break
+    q = d['question']
+    a = d['answer']
+    strings = [q, a]
+    for string in strings:
+        _embedding_add(string)
 
 # probably by writing to the for-bot-only channel. not written yet.
 def backup_qa():
@@ -148,6 +295,34 @@ async def deleteqa(ctx, *, input):
         content='backing up qa.json'
     )
     print('backup was done inside\n\tasync def addqa(ctx, *, input)\nbecause i dont know how to do it outside of this function.')
+
+@bot.command()
+async def generate_nai(ctx, *, input):
+    response = "uhm, what did you just do? hm? generate with NAI? we dont do that here."
+    await ctx.send(response)
+    
+@bot.command()
+async def generate_openai(ctx, *, input):
+    mod = _check_moderation(input)
+    if mod[0] == 'ABORT':
+        response = f'sorry, got flagged.\n{mod[1]}'
+        await ctx.send(response)
+    elif mod[0] == 'all good':
+        response = f'good to go. will generate.\n{mod[1]}'
+        await ctx.send(response)
+        
+        response = _generate_openai(input)
+        await ctx.send(response)
+
+@bot.command()
+async def check_moderation(ctx, *, input):
+    mod = _check_moderation(input)
+    if mod[0] == 'ABORT':
+        response = f'no bueno.\n{mod[1]}'
+        await ctx.send(response)
+    elif mod[0] == 'all good':
+        response = f'good to go\n{mod[1]}'
+        await ctx.send(response)
 
 @bot.command()
 async def addqa(ctx, *, input):
@@ -248,5 +423,19 @@ async def searchqa(ctx, *, input):
             await ctx.send(message)
     else:
         await ctx.send(response)
+
+@bot.command()
+async def embedding_add(ctx, *, input):
+    response = _embedding_add(input)
+    await ctx.send(response)
+
+@bot.command()
+async def embedding_search(ctx, *, input):
+    response = _embedding_search(input)
+    
+    # send response as message.txt
+    output = io.StringIO(response)
+    await ctx.send("search results:", file=discord.File(output, filename='message.txt'))
+    output.close()
 
 bot.run(bot_token)
