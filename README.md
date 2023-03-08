@@ -1,3 +1,5 @@
+(this readme is a outdated)
+
 # description:
 a q&a bot for answering questions about NovelAI  (the gpt powered storyteller pog)
 
