@@ -1,6 +1,9 @@
 # description:
 a bot for creating a database of questions and answers about NovelAI  (the gpt powered storyteller pog)
 
+# basic testing environment:
+https://github.com/AtillaYasar/random-collection-of-things/tree/main/discord_testing
+
 # seperation: backend and frontend
 - backend: discord-independent code
 - frontend: discord-specific code
