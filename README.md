@@ -33,7 +33,7 @@ async def setup(bot):
 ### backend_storage.py
     saving and loading data between sessions, so that things don't get lost when the bot reboots.
 ### backend_openai.py
-    (offline for now)
+    (offline for now, will put this back here after it's tested)
     (uses backend_storage.py) handles openai api
 ### backend_qa.py
     (uses backend_storage.py)
@@ -49,6 +49,7 @@ async def setup(bot):
         - searchqa
         - deleteq
 ### frontend_openai.py
+    (offline for now, will put this back here after it's tested)
     commands:
         - talk
         - make_bot
