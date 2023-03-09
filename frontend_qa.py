@@ -43,7 +43,7 @@ def addqa_parser(input):
         valid = True
         result = {
             'question':q,
-            'answer':a
+            'answer':a,
         }
     return valid, result
 
@@ -86,9 +86,16 @@ async def searchqa(ctx, *, inp):
 @commands.command()
 async def addqa(ctx, *, inp):
     """Add a question-answer pair to the database."""
+    
+    valid, result = addqa_parser(inp)
 
-    q, a = inp.split('&')
-    response = qa_handler.add_qa(q, a)
+    if valid:
+        q = result['question']
+        a = result['answer']
+        response = qa_handler.add_qa(q, a)
+    else:
+        response = 'something went wrong.'
+    
     await ctx.send(response)
 
 @commands.command()
